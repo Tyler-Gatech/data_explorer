@@ -1,0 +1,229 @@
+titanic <- read.csv("C:\\Users\\KNIGTY4\\Downloads\\titanic_train.csv", stringsAsFactors=FALSE)
+
+library(scales)
+
+
+titanic %>% 
+  ggplot(aes(x=survived)) +
+  geom_bar()
+
+
+titanic %>% 
+  select(survived) %>%
+  ggplot(aes(x=survived)) +
+  geom_bar()
+
+
+head(titanic)
+
+#predictive model that determines the best time of exploratory analysis for each variable and each combination of two variables
+#also adds a 3rd element that can be used as a color if qualifies
+
+
+titanic %>% 
+  as_tibble()
+
+
+#Types
+#Integers e.g, age, can be grouped as histograms
+
+titanic %>% 
+  ggplot(aes(age)) +
+  geom_histogram()
+#add a bin slider
+
+#IDs, e.g. passenger id should report summary level information including
+#- range (min, max) 
+# - # missing
+
+
+#for each column of data, classify as int, chr, dbl, boolean. 
+
+pillar::type_sum
+
+data_labels <- colnames(titanic)
+#Dataset info
+info_number_cols <- ncol(titanic)
+info_number_rows <- nrow(titanic)
+info_number_na <- sum(is.na(titanic))
+info_number_blanks <- sum(grepl("^\\s*$", titanic[!is.na(titanic)]))
+
+#Identification fields <- 
+names(which(apply(titanic,2, function(x) (length(unique(x))/length(x)))>=.99))
+id_pct <- apply(titanic,2, function(x) (length(unique(x))/length(x)))[which(apply(titanic,2, function(x) (length(unique(x))/length(x)))>=.99)]
+
+as.data.frame(cbind(names(which(apply(titanic,2, function(x) (length(unique(x))/length(x)))>=.99)),id_pct), row.names = F)
+
+#Variable Type info
+
+
+#Determine if numeric column is continous (e.g. age, height) or categorical, (e.g. 1 = Male, 2 = Female)
+
+df_numeric <- titanic[,sapply(titanic,class) %in% c("integer", "numeric")]
+df_numeric
+
+as.data.frame(c(info_number_cols, info_number_rows, info_number_na, info_number_blanks),
+              row.names = c("Number of variables", "Number of observations", "Total NA (%)", "Total Blank (%)"))
+
+
+data_types <- sapply(titanic, pillar::type_sum)
+data_uniqueness_pct <- names(which(apply(titanic,2, function(x) (length(unique(x))/length(x)))>=.9))
+data_uniqueness_ct <- apply(titanic,2, function(x) (length(unique(x))))
+data_na_ct <- apply(titanic, 2, function(x) sum(is.na(x)))
+#checks for any length of blanks from start-^, 0 or more blank - \\s*, to finish - $ where its not NA - !is.na()
+data_blank_ct <- apply(titanic,2,function(x) sum(grepl("^\\s*$", x[!is.na(x)])))
+data_blank_pct <- (data_na_ct + data_blank_ct) / nrow(titanic)
+
+#for each unique field, label top 10 and then other
+
+#switch na_rule to NA to exclude NA
+df_column_counts <- function(df,top=5, other = TRUE, factors = FALSE, na_exclude = NULL){
+  table_a <- apply(df,2,function(x) table(x,exclude=na_exclude))
+  if(other==FALSE)
+    top_x <- lapply(table_a, function(x) x[c(order(-x))][1:min(length(x),top)])
+  if(other)
+    top_x <- lapply(table_a, function(x) c(x[c(order(-x))][1:min(length(x),top)], "other" = sum(x[c(order(-x))][-c(1:min(length(x),top))])))
+  top_df <- as_tibble(data.frame(col_name = rep(names(top_x),sapply(top_x,length)), 
+                                 label_name = str_trim(unlist(sapply(top_x, names))), 
+                                 count = unlist(top_x), stringsAsFactors = factors))
+  return(top_df[!top_df$count==0,])
+}
+
+log_10_df <- titanic%>%
+  df_column_counts() %>% 
+  mutate(others_ind = ifelse(label_name %in% c("",'other', NA),1,0),
+         others_total = others_ind * count, 
+         named_total = (1-others_ind) * count) %>% 
+  group_by(col_name) %>% 
+  summarise(others_sum = sum(others_total), 
+            named_sum = sum(named_total)) %>% 
+  mutate(others_pct = others_sum/(others_sum + named_sum), 
+         log10_ind = ifelse(others_pct >= .7, 1,0)) %>% 
+  select(col_name, log10_ind)
+
+#df must have previously used df_column_counts() function
+log_10_ind <- function(df, threshold = .7){
+  df %>% 
+    mutate(others_ind = ifelse(label_name %in% c("",'other', NA),1,0),
+           others_total = others_ind * count, 
+           named_total = (1-others_ind) * count) %>% 
+    group_by(col_name) %>% 
+    summarise(others_sum = sum(others_total), 
+              named_sum = sum(named_total)) %>% 
+    mutate(others_pct = others_sum/(others_sum + named_sum), 
+           log10_ind = ifelse(others_pct >= threshold, 1,0)) %>% 
+    select(col_name, log10_ind)
+}
+
+xx <- df_column_counts(titanic)
+log_10_ind(xx)
+
+df_column_counts(titanic) %>% 
+  left_join(log_10_ind(df_column_counts(titanic)))
+
+#log 10: age, boat, body, cabin
+
+df_column_counts(titanic) %>% 
+  left_join(log_10_ind(df_column_counts(titanic))) %>% 
+  filter(col_name == "sex") %>% 
+  ggplot(aes(x=label_name, y = count)) + 
+  geom_bar(stat = "identity") +
+  eval(parse(text = ifelse(log_10_df$log10_ind[log_10_df$col_name=="sex"] == 1,
+                           "scale_y_log10()", 
+                           "scale_y_continuous()")))
+
+))
+  eval(parse(text ="scale_y_continuous()"))
+  eval(parse(text ="scale_y_log10()"))
+
+
+  scale_y_continuous(trans = eval(parse("log10_trans()")))
+
+  scale_y_continuous(trans = eval(parse(ifelse(log_10_df$log10_ind[log_10_df$col_name=="fare"] == 1,
+                                    "log10_trans()", 
+                                    "identity_trans()"))))
+
+  titanic %>% 
+    df_column_counts() %>% 
+    log_10_ind()
+
+?scale_y_con
+
+#defaults to top=5,other = TRUE
+test1 <- df_column_counts(titanic)
+View(test1)
+
+
+unlist(lapply(test1, names))
+
+df <- data.frame(matrix(unlist(test1), nrow=list_rows(test1), byrow=T))
+
+df
+
+unlist(test1, recursive = T)
+names(test1)
+
+install.packages("reshape")
+library(reshape)
+melt(test1)
+
+as_tibble(data.frame(col_name = rep(names(test1),sapply(test1,length)), 
+           label_name = unlist(sapply(test1, names)), 
+           count = unlist(test1)))
+
+sapply(test1, names)
+
+
+length(test1)
+data.frame(unlist(test1, recursive = TRUE, use.names = FALSE))
+
+
+list_rows <- function(list_name){
+sum(unlist(lapply(list_name, length)))
+}
+
+unlist(test1, use.names = T)
+
+#Fleetwave
+#Parking Location - Fleetwave
+
+aa <- apply(titanic,2,function(x) table(x, exclude = NULL))
+
+aa$body
+
+table(titanic$body, exclude = NULL)
+
+?table
+
+
+lapply(aa, function(x) x[c(order(-x))][1:min(length(x),5)] )
+
+
+aa[[13]]
+
+c(aa[[14]][c(order(-aa[[14]]))][1:min(length(aa[[14]]),5)],"other" = sum(aa[[14]][c(order(-aa[[14]]))][-c(1:5)]))
+
+#other, not top 5
+sum(aa[[14]][c(order(-aa[[14]]))][-c(1:5)])
+
+
+
+x[c(order(-x))][1:min(length(x),5)]
+
+
+order(-unlist(aa[2]))
+
+
+data_label <- c("id", "")
+
+titanic %>% 
+  ggplot(aes(x=pclass)) + 
+  geom_bar()
+
+length(unique(titanic$passenger_id))/length(titanic$passenger_id)
+
+
+titanic %>% 
+  df_column_counts() %>% 
+  filter(col_name=="pclass")
+  ggplot(aes())

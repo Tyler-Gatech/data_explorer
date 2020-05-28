@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1585771911321.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "D650E0AF",
+    "lastKnownWriteTime" : 8026935298531928864,
+    "last_content_update" : 1585771911321,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "A7159B12",
+        "caption" : "title",
+        "contentUrl" : "grid_resource/gridviewer.html?env=_rs_no_env&obj=&cache_key=A7159B12",
+        "displayedObservations" : 77,
+        "environment" : "_rs_no_env",
+        "expression" : "structure(list(col_name = c(\"passenger_id\", \"passenger_id\", \"passenger_id\",  \"passenger_id\", \"passenger_id\", \"passenger_id\", \"pclass\", \"pclass\",  \"pclass\", \"name\", \"name\", \"name\", \"name\", \"name\", \"name\", \"sex\",  \"sex\", \"age\", \"age\", \"age\", \"age\", \"age\", \"age\", \"sibsp\", \"sibsp\",  \"sibsp\", \"sibsp\", \"sibsp\", \"sibsp\", \"parch\", \"parch\", \"parch\",  \"parch\", \"parch\", \"parch\", \"ticket\", \"ticket\", \"ticket\", \"ticket\",  \"ticket\", \"ticket\", \"fare\", \"fare\", \"fare\", \"fare\", \"fare\", \"fare\",  \"cabin\", \"cabin\", \"cabin\", \"cabin\", \"cabin\", \"cabin\", \"embarked\",  \"embarked\", \"embarked\", \"embarked\", \"boat\", \"boat\", \"boat\", \"boat\",  \"boat\", \"boat\", \"body\", \"body\", \"body\", \"body\", \"body\", \"body\",  \"home.dest\", \"home.dest\", \"home.dest\", \"home.dest\", \"home.dest\",  \"home.dest\", \"survived\", \"survived\"), label_name = c(\"1\", \"2\",  \"3\", \"4\", \"5\", \"other\", \"3\", \"1\", \"2\", \"Kelly, Mr. James\", \"Abbing, Mr. Anthony\",  \"Abbott, Master. Eugene Joseph\", \"Abbott, Mr. Rossmore Edward\",  \"Abbott, Mrs. Stanton (Rosa Hunt)\", \"other\", \"male\", \"female\",  \"18.0000\", \"30.0000\", \"24.0000\", \"22.0000\", \"25.0000\", \"other\",  \"0\", \"1\", \"2\", \"4\", \"3\", \"other\", \"0\", \"1\", \"2\", \"4\", \"3\", \"other\",  \"CA. 2343\", \"1601\", \"347082\", \"CA 2144\", \"PC 17608\", \"other\",  \"13.0000\", \"8.0500\", \"7.7500\", \"7.8958\", \"26.0000\", \"other\",  \"\", \"B57 B59 B63 B66\", \"B96 B98\", \"C22 C26\", \"D\", \"other\", \"S\",  \"C\", \"Q\", \"\", \"\", \"4\", \"C\", \"13\", \"14\", \"other\", \"4\", \"7\", \"9\",  \"14\", \"16\", \"other\", \"\", \"New York, NY\", \"Cornwall / Akron, OH\",  \"London\", \"Montreal, PQ\", \"other\", \"0\", \"1\"), count = c(1L, 1L,  1L, 1L, 1L, 845L, 478L, 206L, 166L, 2L, 1L, 1L, 1L, 1L, 844L,  551L, 299L, 32L, 30L, 29L, 28L, 26L, 531L, 573L, 213L, 25L, 14L,  12L, 13L, 651L, 113L, 72L, 5L, 3L, 6L, 10L, 8L, 6L, 6L, 6L, 814L,  42L, 40L, 39L, 32L, 29L, 667L, 659L, 4L, 4L, 4L, 4L, 175L, 589L,  176L, 84L, 1L, 542L, 25L, 24L, 23L, 23L, 213L, 1L, 1L, 1L, 1L,  1L, 68L, 386L, 36L, 7L, 7L, 6L, 408L, 537L, 313L)), row.names = c(NA,  -77L), class = c(\"tbl_df\", \"tbl\", \"data.frame\"))",
+        "object" : "",
+        "preview" : 0,
+        "totalObservations" : 77,
+        "variables" : 3
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 7,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

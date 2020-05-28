@@ -1,0 +1,232 @@
+library(shiny)
+library(shinythemes)
+library(markdown)
+library(ggplot2)
+library(tidyverse)
+library(shinydashboard)
+
+#html tags in shiny
+#https://shiny.rstudio.com/articles/tag-glossary.html
+
+#switch na_rule to NA to exclude NA
+
+
+source("./functions/top_column_counts.R")
+#df should_be from df_column_counts() function
+log_10_ind <- function(df, threshold = .7){
+    df %>% 
+        mutate(others_ind = ifelse(label_name %in% c("",'other', NA),1,0),
+               others_total = others_ind * count, 
+               named_total = (1-others_ind) * count) %>% 
+        group_by(col_name) %>% 
+        summarise(others_sum = sum(others_total), 
+                  named_sum = sum(named_total)) %>% 
+        mutate(others_pct = others_sum/(others_sum + named_sum), 
+               log10_ind = ifelse(others_pct >= threshold, 1,0)) %>% 
+        select(col_name, log10_ind)
+}
+
+percent <- function(x, digits = 2, format = "f", ...) {
+    paste0(formatC(100 * x, format = "f", digits = 1), "%")
+}
+
+
+ui <- fluidPage(
+            theme = shinytheme("cosmo"),
+            # tags$head(
+            #     tags$link(rel = "stylesheet", type = "text/css", href = "bootstrap.css")
+            # ),
+            includeCSS("styles.css"),
+            includeCSS("styles2.css"),
+
+                
+    # Application title
+    navbarPage("FAAST Data Explorer!",
+# Data Preview Panel               
+        tabPanel("Data Preview",
+                 # dashboardPage(
+                 #     dashboardHeader(title = "FAAST Data Explorer"),
+                 #     dashboardSidebar(),
+                 #     dashboardBody()
+                 # ),
+
+            sidebarLayout(
+                sidebarPanel(
+                    fileInput("file1", "Choose CSV File",
+                              accept = c(
+                                  "text/csv",
+                                  "text/comma-separated-values,text/plain",
+                                  ".csv")
+                    ),
+                    tags$hr(),
+                    # sliderInput("rows",
+                    #             "Number of rows displayed:",
+                    #             min = 1,
+                    #             max = 50,
+                    #             value = 5),
+                    # tags$hr(),
+                    checkboxInput("header", "Header", TRUE)
+                    # , 
+                    # checkboxInput("random", "Show Random Data", FALSE)
+                ),
+                mainPanel(
+                    
+                    #verbatimTextOutput("summary"),
+                    dataTableOutput("table.output")
+                )
+            )
+        ),
+# Summary Panel
+        
+        tabPanel("Summary",
+
+                 
+                 tags$h1(class = "test_header", "Overview"),
+                 tags$h3("Dataset Info"),
+                 tableOutput('data_info'),
+                 tags$h3("Identifier Columns"),
+                 tableOutput('id_columns'),
+                 
+                 tabsetPanel(type = "tabs",
+                             tabPanel("Summary",
+                                      verbatimTextOutput("summary")
+                                      ),
+                             tabPanel("Histogram"),
+                             tabPanel("Common Values"),
+                             tabPanel("Extreme Values")
+                             
+                 )
+                 
+                 
+        ),
+
+# Graphs Panel        
+        tabPanel("Graphs",
+                 mainPanel(
+                     #selectInput("variables", "Select Columns", choices = NULL)
+                     #tableOutput("plotdata_select")
+                     selectInput("xcol", "Select X Axis", choices = "var_choices", selected = "Survived",  multiple = F ),
+                     selectInput("y_axis_type", "Toggle Y Scale (Auto-suggestion Provided)", choices = c("Linear","Logarithmic"), selected = "Linear"),
+                     plotOutput("plot_xy"),
+                     
+
+                 )
+        )
+    )
+)
+
+server <- function(input, output, session) {
+    
+    # Use UI input to bring csv data onto server
+    mydata <- reactive({
+        req(input$file1)
+        #using the data gathered from fileInput on UI Side
+        inFile <- input$file1
+        
+        #display null if nothing exists
+        #if (is.null(inFile))
+        #     return(NULL)
+        
+        tbl <- read.csv(inFile$datapath, header=TRUE)
+        updateSelectInput(session,  inputId = 'xcol', label = 'Select X Axis',
+                          #selected  = input$xcol,
+                          choices = names(tbl))
+
+    
+        return(tbl)
+    })
+    
+        observe({
+            
+            log_10_df <- mydata() %>% 
+                df_column_counts() %>% 
+                log_10_ind() %>% 
+                mutate(log_10_label = ifelse(log10_ind==1,"Logarithmic","Linear"))
+            
+            updateSelectInput(session,  inputId = 'y_axis_type',
+                              label = 'Toggle Y Scale (Auto-suggestion Provided)',
+                              choices = c("Linear", "Logarithmic"),
+                              selected = log_10_df$log_10_label[log_10_df$col_name==input$xcol])
+            
+        })
+        
+    #run the mydata dataset into a renderable table for UI
+    output$table.output <- renderDataTable({
+
+        # if (is.null(mydata()))
+        #     return(NULL)
+        mydata()
+        # x <- mydata()
+        # rows <- 1:input$rows
+        # if(input$random)
+        #     rows <- sample(1:nrow(x), input$rows) 
+        # #x[rows,]
+        # x[rows,]
+    }, options = list(pageLength = 5))
+    
+    #Generate a table of Dataset info
+    output$data_info <- renderTable({
+        
+        info_number_cols <- ncol(mydata())
+        info_number_rows <- nrow(mydata())
+        info_number_na <- percent(sum(is.na(mydata()))/(info_number_cols*info_number_rows))
+        info_number_blanks <- percent(sum(grepl("^\\s*$", mydata()[!is.na(mydata())]))/(info_number_cols*info_number_rows))
+        
+        as.data.frame(
+            cbind(
+            c("Number of variables", "Number of observations", "Total NA (%)", "Total Blank (%)"), 
+            c(info_number_cols, info_number_rows, info_number_na, info_number_blanks)
+            )
+            
+        )
+        
+    }, colnames = FALSE)
+    
+    
+
+    
+    output$id_columns <- renderTable({
+        
+        `Column Name` <- names(which(apply(mydata(),2, function(x) (length(unique(x))/length(x)))>=.99))
+        `Percent Unique` <- percent(apply(mydata(),2, function(x) (length(unique(x))/length(x)))[which(apply(mydata(),2, function(x) (length(unique(x))/length(x)))>=.99)])
+        
+        as.data.frame(cbind(`Column Name`,`Percent Unique`), row.names = F)
+        
+        
+    })
+
+     # Generate a summary of the dataset
+    output$summary <- renderPrint({
+        
+        if (is.null(mydata()))
+            return(NULL)
+        
+        #return the  bsic r summary table
+        summary(mydata())
+        
+    })
+    
+    # Generate a list from the dataset
+     output$plot_xy <- renderPlot({
+         
+         log_10_df <- mydata() %>% 
+             df_column_counts() %>% 
+             log_10_ind()
+         
+         mydata() %>%
+             df_column_counts() %>% 
+             filter(col_name == input$xcol) %>% 
+             ggplot(aes(x=label_name, y = count)) + 
+             geom_bar(stat = "identity") +
+             xlab(input$xcol) + 
+             eval(parse(text = ifelse(input$y_axis_type =="Logarithmic",
+                                      "scale_y_log10()", 
+                                      "scale_y_continuous()")))
+             #labs(x = label_name)
+     }
+     )
+    
+    
+}
+
+shinyApp(ui, server)

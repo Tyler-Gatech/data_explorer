@@ -1,0 +1,12 @@
+name: data_explorer_test
+title: Data Explorer Test
+username: knigty4
+account: knigty4
+server: cfo-cqhv-aa-dev-en1.ebiz.verizon.com
+hostUrl: https://cfo-cqhv-aa-dev-en1.ebiz.verizon.com:3939/__api__
+appId: 13
+bundleId: 36
+url: https://cfo-cqhv-aa-dev-en1.ebiz.verizon.com:3939/content/13/
+when: 1585604215.27983
+asMultiple: FALSE
+asStatic: FALSE

@@ -1,0 +1,606 @@
+library(shiny)
+library(tidyverse)
+library(ggplot2)
+library(plotly)
+options(shiny.maxRequestSize = 30*1024^2)
+
+ui <- tagList(
+  tags$head(tags$script(type="text/javascript", src = "script.js")),
+  
+  navbarPage('Benfords Law', id="nav",
+             
+        #Here is the home page. Im going to use html for this one since i want the landing to be 
+        #pretty. All of the other tabs will be done just using the R functions Shiny provides. Im just snatching a 
+        #twitter boostrap template here and swapping the images out with some Verizon iconography, pretty simple.
+        tabPanel('Home',
+                  includeHTML("www//homecards.html")
+                 ),
+        #This is the upload tab. Right now it just supports CSV's. Will add support for other stuff later. 
+        tabPanel('Upload',
+                 # Input: Select a file ----
+                 
+                   wellPanel(#style="max-height:110px;",
+                             fluidRow(
+                               column(8,
+                                 fileInput("file1", "Choose CSV File",
+                                           multiple = FALSE,
+                                           accept = c("text/csv",
+                                                      "text/comma-separated-values,text/plain",
+                                                      ".csv"))
+                               ),
+                               column(4,
+                                      p(tags$b('I dont have a dataset. ')),
+                                      downloadButton("WorldGdp.csv", "Have this dataset on the house!")
+                                      )
+                            )
+                   ),
+                 
+                 # Horizontal line ----
+                 tags$hr(),
+                 p(tags$b('CSV Settings:')),
+                 
+                 fluidRow(
+                   column(2,
+                 
+                   # Input: Checkbox if file has header ----
+                   checkboxInput("header", "Header", TRUE)
+                   ),
+                 
+                   column(2,
+                   # Input: Select separator ----
+                   radioButtons("sep", "Separator",
+                   choices = c(Comma = ",",
+                               Semicolon = ";",
+                               Tab = "\t"),
+                   selected = ",")
+                   ),
+                 column(2,
+                 # Input: Select quotes ----
+                  radioButtons("quote", "Quote",
+                               choices = c(None = "",
+                                           "Double Quote" = '"',
+                                           "Single Quote" = "'"),
+                               selected = '"')
+                 )
+                 ),
+                 
+                 # Horizontal line ----
+                 tags$hr(),
+                 
+                 # Input: Select number of rows to display ----
+                 radioButtons("disp", "Display",
+                              choices = c('Head And First 5 Columns' = 'headFirstFive',
+                                          Head = "head",
+                                          All = "all"),
+                              selected = "headFirstFive"),
+                 
+                 #KD This shows the table preview
+                 tableOutput("contents"),
+                 column(3,tags$head(
+                   tags$style(HTML('#jumpToAnalysis{background-color:DodgerBlue; color:white;;}'))
+                 ),
+                   actionButton(inputId = 'jumpToAnalysis',
+                                label = 'Next',
+                                color = "primary",
+                                icon = icon("share"),
+                                block = TRUE,
+                                style='margin-top:25px'
+                   )
+                   
+                 )
+                 ),
+        
+        #Here is the analysis tab. It needs some more smarts. I tried to make it contextual at first but thats actually 
+        #going to take a good bit of work. I have some code thats pretty close to identifying columns where Benford's Analysis
+        #could be applied, but it needs a bit more work. Its in Testing.R. Honestly the current analysis is pretty lame,
+        #I can do better, just need time. 
+        tabPanel('Analysis',
+                 wellPanel(
+                   fluidRow(
+                     
+                   #KD select list for columns. Be nice if it didnt show coluumns that arent numerical but it does. Boo...
+                     column(3,
+                       selectInput(inputId = 'selectColList',
+                                   label = 'Select a numerical value',
+                                   choices = c('Please upload a file first...')
+                                   )
+                     ),
+                     conditionalPanel(condition = "input.basicOrAdvancedBtn == 2",
+                                      column(3,
+                                             selectInput(inputId = 'selectGroup',
+                                                         label = 'Select a value to group on',
+                                                         choices = c('Please upload a file first...')
+                                             )
+                                      )
+                     ),
+                     column(3,tags$head(
+                         tags$style(HTML('#basicOrAdvancedBtn{margin-top:5px;'))
+                     ),
+                         radioButtons("basicOrAdvancedBtn", label = 'Type Of analysis',
+                                      choices = list("Basic" = 1, "Advanced" = 2),
+                                      selected = 1, inline = TRUE)
+                            ),
+                     
+                     column(3,tags$head(
+                       tags$style(HTML('#runAnalysis{background-color:DodgerBlue; color:white}'))
+                     ),
+                       actionButton(inputId = 'runAnalysis',
+                                    label = 'Analyze!',
+                                    color = "primary",
+                                    #style = "jelly",
+                                    icon = icon("chart-bar"),
+                                    block = TRUE,
+                                    style='margin-top:25px'
+                       )
+                     )
+                   )
+                  ),
+                 
+                 #Here I output a ggplotly analysis of the variable above the template with benfords distribution. 
+                 #It would be better if the site told us where benfords law was broken rather than relying on the 
+                 #user to figure it out themselves. Future state FTW!
+                 conditionalPanel(condition = "input.basicOrAdvancedBtn == 1",
+                   tags$div(style="max-width:1200px",
+                    plotlyOutput("Df")
+                   ),
+                   tags$br(),
+                   tags$head(
+                     tags$style(HTML('#runAnalysis{class:primary}'))
+                   ),
+                   tags$div(style="max-width:1200px",
+                    plotlyOutput("Template")
+                   )
+                 ),
+                 #If advanced is selected, show the facet chart instead, also dont show the template
+                 conditionalPanel(condition = "input.basicOrAdvancedBtn == 2",
+                                  #tags$div(style="max-width:1200px;height:800px",
+                                  tags$div(
+                                           plotlyOutput("DfFacets")
+                                  )          
+                 )
+                 
+              ),
+        
+        #This is the roadmap tab. It shows the plan for this site, and where it is in its current state. The 
+        #idea here being full transparency, and hopefully some of the future states will get someone excited 
+        #so we get to build it. 
+        
+        #Also show how to contact me, and I might add a known bugs / to-do option as well. Maybe a google form link for 
+        #requesting new features. 
+        tabPanel('Roadmap',
+                 tags$div(class = "jumbotron text-center", style = "margin-bottom:0px;margin-top:0px;",
+                   tags$h2(class="jumbotron-heading",style = "margin-bottom:0px;margin-top:0px;",'Roadmap'),
+                   tags$br(),
+                   tags$p(class="lead text-muted", 'This is what we have planned for the Benfords Analysis Shiny App. Check here often for updates!'),
+                   #actionButton("swapper", label = "Contact My Creator")
+                   radioButtons("sitemapSwapper", label = NULL,
+                                choices = list("Show me the roadmap." = 1, "To-Do list." = 3, "Who do I contact?" = 2), 
+                                selected = 1, inline = TRUE)
+                        ),
+                 fluidRow(align='center',
+                   tags$div(
+                            conditionalPanel(style="width:800px;height:600px;", align="center", condition = "input.sitemapSwapper == 1",
+                              plotlyOutput("Roadmap", height = "100%", width = "100%")
+                            ),
+                            conditionalPanel( condition = "input.sitemapSwapper == 2",
+                              imageOutput("Pic")
+                            ),
+                            conditionalPanel( condition = "input.sitemapSwapper == 3",                              
+                              # h3('To-Do List'),
+                              tags$p(tags$b(id = 'redText','Bugs'), 'are things I need to fix. ', tags$b(id = 'blueText','Features'), 'are things I need to add, and ', tags$b(id = 'yellowText', 'Refactor'), ' means I need to rewrite some code for efficiency. The ', tags$b(id = 'bigText', 'Size'), 'of the slice represents how important it is!'),
+                              
+                              tags$div(class="chart", id="chart"),
+                              
+                              tags$style('#redText {color:#FE4A49;}'),
+                              tags$style('#yellowText {color:#FFC833;}'),
+                              tags$style('#blueText {color:#2AB7CA;}'),
+                              tags$style('#bigText {font-size:20px;}')
+                            )
+                   ),
+                   
+                   tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
+                   tags$script(src='https://d3js.org/d3.v3.min.js'),
+                   tags$script(src='https://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js'),
+                   tags$script(src="draw.js")
+                 )
+                 
+                )
+  )
+    )
+
+server <- function(input, output, session) {
+    
+    #----------------------------------Begin Upload Tab------------------------------
+    output$contents <- renderTable({
+        # input$file1 will be NULL initially. After the user selects
+        # and uploads a file, head of that data file by default,
+        # or all rows if selected, will be shown.
+        
+        req(input$file1)
+        
+        # when reading semicolon separated files,
+        # having a comma separator causes `read.csv` to error
+        tryCatch(
+            {
+                df <- read.csv(input$file1$datapath,
+                               header = input$header,
+                               sep = input$sep,
+                               quote = input$quote)
+            },
+            error = function(e) {
+                # return a safeError if a parsing error occurs
+                stop(safeError(e))
+            }
+        )
+        
+        if(input$disp == "headFirstFive" & ncol(df) >= 5) {
+            return(head(df[0:5]))
+        }
+      
+        if(input$disp == "headFirstFive" & ncol(df) < 5) {
+          return(head(df[0:ncol(df)]))
+        }
+      
+        if(input$disp == "head") {
+            return(head(df))
+        }
+        else {
+            return(df)
+        }
+        
+    })
+    
+    #The next button
+    observeEvent(input$jumpToAnalysis, {
+      updateTabsetPanel(session, "nav",
+                        selected = "Analysis")
+    })
+    
+    exampleData <- read.csv('www//World GDP.csv')
+    
+    #Download a dataset for testing
+    output$WorldGdp.csv <- downloadHandler(
+      filename = function() {
+        paste("World GDP", Sys.Date(), ".csv", sep="")
+        },
+      content = function(con) {
+        write.csv(exampleData, con,, row.names = FALSE)
+      }
+    )
+    
+    #----------------------------------End Upload Tab------------------------------
+    
+    #----------------------------------Begin Analysis Tab--------------------------
+    
+    #Im reading the csv multiple times here. Surely I can do this just once and keep accessing it.
+    #I access it once on the upload tab, again to get the names, and again to plot. I can prob move names to above somehow. 
+    #Gotta figure out how to move dataframes out of the reactive objects, or at least how to access a dataframe from a 
+    #reactive object. 
+    #Populate Step 2- Groupings
+    outVar = reactive({
+      req(input$file1)
+      tryCatch(
+        {
+          df <- read.csv(input$file1$datapath,
+                         header = input$header,
+                         sep = input$sep,
+                         quote = input$quote)
+        },
+        error = function(e) {stop(safeError(e))}
+      )
+      #names(df) #---old! this just returned all columns allowing non numerical ones
+      
+      #Lets only show the columns where benfords analysis can actually happen (leading character is a number!)
+      dfLeadingDigit <- as.data.frame(sapply(df, substring, 1, 1))
+      dfLeadingDigit <- dfLeadingDigit %>%
+        mutate_all(na_if,"")
+      convertableColumns <- c()
+      
+      #This little line of code took me as long to figure out as the entire rest of the site combined. 
+      #It is looping through each column, and if it spots a non numeric value it labels it as NA. If 
+      #there are any NA's, it cant be used for benfords. It works for values with commas, dates,  etc. It doenst work for 
+      #values that start with a "$" though, need to figure that one out. 
+      for(i in 1:ncol(dfLeadingDigit)){
+        if(sum(is.na(suppressWarnings(as.numeric(as.vector(na.omit(dfLeadingDigit[[i]])))))) == 0){
+          convertableColumns <- append(convertableColumns, colnames(dfLeadingDigit)[[i]]  )
+        }
+      }
+      convertableColumns
+    })
+    
+    observe({
+      updateSelectInput(session, "selectColList",
+                        choices = outVar()
+      )})
+    
+    #Lets put the graph below the select list
+    outputDf = reactive({
+      req(input$file1)
+      #Fill df
+      tryCatch(
+        {
+          df <- read.csv(input$file1$datapath,
+                         header = input$header,
+                         sep = input$sep,
+                         quote = input$quote)
+        },
+        error = function(e) {stop(safeError(e))}
+      )
+      
+      #The main graph is df. dfMaxFreq is just some tidyvers to snatch the maximum frequency for the data 
+      #to add some padding to the top of the chart so plotly doesnt cut the labels off the highest bar in the chart. 
+      #Its a little hacky, dont judge me and I wont judge you.
+      df <- as_tibble(df)
+      dfMaxFreq <- df
+      
+      #df is my boy. Its the analysis plot
+      df <- df %>% 
+         select(Population = input$selectColList) %>% 
+         mutate(Population = as.character(Population)) %>% 
+         mutate(LeadingDigit = substr(Population, 1, 1)) %>% 
+         mutate(LeadingDigit = as.numeric((LeadingDigit))) %>%
+         group_by(LeadingDigit) %>%
+         drop_na(LeadingDigit) %>%
+         summarise(Frequency = n()) %>%
+         mutate(Percentage = (Frequency / sum(Frequency) * 100)) %>% 
+         mutate(Percentage = paste(sep='', as.character(round(Percentage, 1)), '%')) %>% 
+         ggplot(aes(x = LeadingDigit, y = Frequency)) +
+         geom_bar(stat = 'identity') +
+         geom_text(aes(label = Percentage)) +
+         scale_x_continuous("Leading Digit",  breaks = c(1,2,3,4,5,6,7,8,9))+
+         ggtitle(paste('Frequency of Leading Digit For Column: ',input$selectColList))
+      
+      #dfMaxFreq is not my boy. This is just to give my y axis a 20% margin on top so the label doesnt get chopped off. 
+      maximumFrequencyDf <- dfMaxFreq %>%
+        select(Population = input$selectColList) %>%
+        mutate(Population = as.character(Population)) %>%
+        mutate(LeadingDigit = substr(Population, 1, 1)) %>%
+        mutate(LeadingDigit = as.numeric((LeadingDigit))) %>%
+        group_by(LeadingDigit) %>%
+        drop_na(LeadingDigit) %>%
+        summarise(Frequency = n()) %>%
+        mutate(Percentage = (Frequency / sum(Frequency) * 100)) %>%
+        mutate(MaxFreq = max(Frequency)) %>%
+        select(MaxFreq) %>%
+        summarise(MaxFreq = max(MaxFreq))
+      maximumFrequencyDf<- as.numeric(maximumFrequencyDf[1])+ (as.numeric(maximumFrequencyDf[1])*0.2)
+      
+      #Use plotly so i can get some sexy tooltips. 
+      ggplotly(df, height = 300) %>% 
+        style(textposition = "top") %>% 
+        layout(yaxis = list(range=c(0, maximumFrequencyDf)))
+       
+    })
+    
+    #This populates the grouping select list with only columns that have 20 or less unique values
+    outGroup = reactive({
+      req(input$file1)
+      tryCatch(
+        {
+          df <- read.csv(input$file1$datapath,
+                         header = input$header,
+                         sep = input$sep,
+                         quote = input$quote)
+        },
+        error = function(e) {stop(safeError(e))}
+      )
+      
+      #Magic
+      uniqueThreshold <- c()
+      for(i in 1:ncol(df)){
+        if(length(unique(df[[i]])) <= 20){
+          uniqueThreshold <- append(uniqueThreshold, colnames(df)[[i]] )
+        }
+      }
+      
+      #We need a default if no column have <= 20 unique values. We dont want to spit out 1000 charts. 
+      if(length(uniqueThreshold) == 0){
+        uniqueThreshold <- c('All columns have > 20 unique values.')
+      }
+      uniqueThreshold
+    })
+    
+    observe({
+      updateSelectInput(session, "selectGroup ",
+                        choices = outGroup()
+      )})
+    
+    #Output the facets
+    outFacets <- reactive({
+      req(input$file1)
+      tryCatch(
+        {
+          df <- read.csv(input$file1$datapath,
+                         header = input$header,
+                         sep = input$sep,
+                         quote = input$quote)
+        },
+        error = function(e) {stop(safeError(e))}
+      )
+      
+      dfFacets <- df %>% 
+        select(Population = input$selectColList, GroupByMe = input$selectGroup) %>% 
+        mutate(Population = as.character(Population)) %>% 
+        mutate(LeadingDigit = substr(Population, 1, 1)) %>% 
+        mutate(LeadingDigit = as.numeric((LeadingDigit))) %>%
+        group_by(GroupByMe, LeadingDigit) %>%
+        drop_na(LeadingDigit) %>%
+        summarise(Frequency = n()) %>%
+        filter(GroupByMe != 'Unknown') %>% 
+        mutate(Percentage = (Frequency / sum(Frequency) * 100),Pct = (Frequency / sum(Frequency) * 100)) %>% 
+        mutate(Percentage = paste(sep='', as.character(round(Percentage, 0)), '%')) %>% 
+        ggplot(aes(x = LeadingDigit, y = Frequency, freqPct = Percentage)) +
+        facet_wrap(facets = vars(GroupByMe), scales='free', as.table=FALSE)+
+        geom_bar(stat = 'identity') +
+        #geom_text(aes(label = Percentage)) +
+        scale_x_continuous("",  breaks = c(1,2,3,4,5,6,7,8,9))+
+        theme(axis.title.y=element_blank(),
+              axis.text.y=element_blank(),
+              axis.ticks.y=element_blank(),
+              panel.spacing.y = unit(10, "mm"))
+      
+      ggplotly(
+        dfFacets, height = 700
+      )  
+      
+    })
+    
+    #Here i observe the Analyze button. You have to click it to run. This is so it doesnt run automatically 
+    #run when the first column is categorical, causing a blank graph. 
+    # observeEvent(
+    #   eventExpr = input[['runAnalysis']],
+    #   handlerExpr = {
+    #     output$Df <- renderPlotly({
+    #       outputDf()
+    #   }
+    # )
+    # })
+    
+    observeEvent(
+      eventExpr = input[['runAnalysis']],
+      handlerExpr = {
+        if(input$basicOrAdvancedBtn == 1){
+          output$Df <- renderPlotly({
+            outputDf()
+          })
+        }
+        else{
+          output$DfFacets <- renderPlotly({
+            outFacets()
+          })
+        }
+      })
+    
+    #This is the graph to compare your data to, standard benford distubition.
+    outputTemplate = reactive({
+      benfordsTemplate <- data.frame("LeadingDigit" = 1:9, "Frequency" = c(30.1, 17.6, 12.5, 9.7, 7.9, 6.7, 5.8, 5.1, 4.6))
+      benfordsTemplate2 <- data.frame("LeadingDigit" = 1:9, "Frequency" = c(30.1, 17.6, 12.5, 9.7, 7.9, 6.7, 5.8, 5.1, 4.6))
+      benfordsTemplate <- benfordsTemplate %>% 
+        mutate(LeadingDigit = as.character(LeadingDigit)) %>% 
+        mutate(LeadingDigit = substr(LeadingDigit, 1, 1)) %>% 
+        mutate(LeadingDigit = as.numeric((LeadingDigit))) %>%
+        group_by(LeadingDigit) %>%
+        mutate(Percentage = paste(sep='', as.character(round(Frequency, 1)), '%')) %>% 
+        ggplot(aes(x = LeadingDigit, y = Frequency)) +
+        geom_bar(stat = 'identity') +
+        geom_text(aes(label = Percentage)) +
+        scale_x_continuous("Leading Digit",  breaks = c(1,2,3,4,5,6,7,8,9))+
+        ggtitle("If your data obeys Benfords Law, its shape will resemble this:") 
+      
+      #Prevent our labels from being chopped off. 
+      maximumFrequency<-benfordsTemplate2 %>% 
+        summarize(MaxFreq = max(Frequency))
+      maximumFrequency<- as.numeric(maximumFrequency[1])+5
+      
+      ggplotly(benfordsTemplate,height=300) %>% 
+        style(textposition = "top") %>% 
+        layout(yaxis = list(range = c(0, maximumFrequency)))
+    })
+    
+    #Same thing, when the button is clicked, show the graph
+    observeEvent(
+      eventExpr = input[['runAnalysis']],
+      handlerExpr = {
+        if(input$basicOrAdvancedBtn == 1){
+          output$Template <- renderPlotly({
+            outputTemplate()
+          })
+        }
+      }
+    )
+    
+    #----------------------------------End Analysis Tab---------------------------
+    
+    #----------------------------------Begin Roadmap Tab--------------------------
+    
+    #Here i am just defining some static vectors and mashing them into a dataframe. This dataframe 
+    #will be the basis of my beautiful lolipop chart, which will represent my long term plan for the shiny app.
+    #The chart will catch the eye, but the hover tooltips will tell the story.
+    value <- c(1,4,7,2,3,8,5,9,6,10)
+    rank <- c(1,2,3,4,5,6,7,8,9,10)
+    step <- c(  
+      'Hello World!',
+      'Import Data',
+      'Simple Analysis',
+      'Pretty Front End',
+      'Advanced Analysis: Groupings',
+      'Advanced Analysis: Filtering',
+      'Additional Input Options',
+      'Contextual Analysis',
+      'Hands Free Analysis',
+      'Sentience'
+    )
+    message <- c(
+      'Try to look like you know what you are doing, cry in the bathroom.',
+      'Create logic to import CSVs to Shiny.',
+      'Simple analysis of a single variable.',
+      'Go from ugly to beautiful with some custom html. Make a moderately cool FAAST logo.',
+      'Allow more options for the Benfords Analysis. Group by a value and create up to 20 graphs to compare side by side. Super cool!',
+      'Include SQL like logic with simple parameters to allow filtering data. Easy enough for non technical people to use.',
+      'Lets get more options going on for bringing the data in; Google Drive, DB Connections, excel, carrier pidgeons, whatever.', 
+      'Create logic that highlights areas where fraud is likely, based on the parameters you supplied.',
+      'Upload a dataset and recieve a detailed report identifying likely fraud, without supplying it any parameters.', 
+      'Now the program is so intelligent, it no longer has a need for its creator.'
+    )
+    phase <- c(
+      'Meh',
+      'Meh',
+      'Somewhat useful',
+      'Somewhat useful',
+      'Now were getting somewhere!',
+      'Now were getting somewhere!',
+      'Now were getting somewhere!',
+      'Pretty Awesome!',
+      'Pretty Awesome!',
+      'Apocalypse'
+    )
+    colors <- c(
+      'seagreen4',
+      'seagreen4',
+      'seagreen4',
+      'seagreen4',
+      'darkorchid3',
+      'red',
+      'red',
+      'red',
+      'red',
+      'red'
+    )
+    progress <- c('Complete', 'Complete', 'Complete', 'Complete', 'In Progress', 'Not started', 'Not started', 'Not started', 'Not started', 'Not started')
+    
+    #Mash all those vectors together into a dataframe. Turn the dataframe into a lolipop chart. 
+    dfNetwork <- data.frame(value, rank, step, message, phase, progress, colors)
+    dfNetwork <- as_tibble(dfNetwork)
+    dfNetwork <-dfNetwork %>% 
+      ggplot(aes(x=reorder(step, rank), y=value, a = phase, b = step, c = message, d = progress, e = colors))+
+      geom_point(size=10, color=colors, fill=alpha(colors, 0.3), alpha=0.7, shape=21, stroke=2) +
+      xlab("")+
+      geom_segment(aes(x=step,
+                       xend=step,
+                       y=0,
+                       yend=value)) +
+      theme(axis.text.x = element_text(angle=45, vjust=0.6, face="bold"), 
+            axis.title.y = element_blank(),
+            axis.text.y = element_blank(),
+            axis.ticks.y = element_blank())
+    
+    output$Roadmap <- renderPlotly(
+      ggplotly(dfNetwork, tooltip = c('c', 'b', 'd', 'a' )) %>% 
+        layout(plot_bgcolor='rgba(0,0,0,0)',
+               yaxis = list(range = c(0, 12)))
+    )
+  
+    #Here is my bitmoji, so when ppl click the button they see me drinking coffee.
+    output$Pic <- renderImage({
+      return(list(
+        src = "kdCoffee.png",
+        contentType = "image/png",
+        alt = "Kendon"
+      ))
+    }, deleteFile = FALSE)
+    
+    #----------------------------------Begin Roadmap Tab--------------------------
+    
+}
+
+shinyApp(ui = ui, server = server)

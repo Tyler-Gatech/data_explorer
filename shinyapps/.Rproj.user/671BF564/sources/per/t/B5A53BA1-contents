@@ -1,0 +1,15 @@
+#the purpose of this function is to determine whether or not a log10 indicator should be used for graphs based on heavy skewness of data
+
+#df should_be from df_column_counts() function
+log_10_ind <- function(df, threshold = .7){
+  df %>% 
+    mutate(others_ind = ifelse(label_name %in% c("",'other', NA),1,0),
+           others_total = others_ind * count, 
+           named_total = (1-others_ind) * count) %>% 
+    group_by(col_name) %>% 
+    summarise(others_sum = sum(others_total), 
+              named_sum = sum(named_total)) %>% 
+    mutate(others_pct = others_sum/(others_sum + named_sum), 
+           log10_ind = ifelse(others_pct >= threshold, 1,0)) %>% 
+    select(col_name, log10_ind)
+}

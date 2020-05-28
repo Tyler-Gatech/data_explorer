@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1585834004969.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "87EA5053",
+    "lastKnownWriteTime" : 1723113222056,
+    "last_content_update" : 1585834004969,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "83018770",
+        "caption" : "group_ind_function(mpg, group1 = \"manufacturer\", numeric = \"hwy\", ",
+        "contentUrl" : "grid_resource/gridviewer.html?env=_rs_no_env&obj=&cache_key=83018770",
+        "displayedObservations" : "15",
+        "environment" : "_rs_no_env",
+        "expression" : "group_ind_function(mpg, group1 = \"manufacturer\", numeric = \"hwy\",      threshold1 = 20, threshold_pct = 0.5)",
+        "object" : "",
+        "preview" : "0",
+        "totalObservations" : "15",
+        "variables" : "5"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

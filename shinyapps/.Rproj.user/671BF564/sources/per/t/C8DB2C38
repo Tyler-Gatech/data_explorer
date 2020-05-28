@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1585933625965.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3690652092",
+    "id" : "C8DB2C38",
+    "lastKnownWriteTime" : 1585933617,
+    "last_content_update" : 1585933617,
+    "path" : "C:/Users/KNIGTY4/Downloads/app (2).R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "208,5",
+        "scrollLine" : "184"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 9,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
